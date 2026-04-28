@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-orange: #ff6b35;
+  --color-brand-dark: #1a0a00;
+  --color-brand-cream: #f7c59f;
+  --color-brand-light: #efefd0;
+  --color-brand-bg: #efefd0;
+
+  --font-family-mono: 'Courier New', Courier, monospace;
+  --font-family-serif: Georgia, 'Times New Roman', serif;
+}
+
+/* CRT scanlines — aplicar com class="crt" no elemento raiz */
+.crt {
+  position: relative;
+}
+.crt::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
