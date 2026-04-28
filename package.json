@@ -1,0 +1,38 @@
+{
+  "name": "rachacerto",
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "wrangler": "wrangler"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
+    "@astrojs/cloudflare": "^13.2.2",
+    "@astrojs/react": "^5.0.4",
+    "astro": "^6.1.10",
+    "pix-utils": "^2.8.2",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "ulid": "^3.0.2",
+    "unpdf": "^1.6.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@tailwindcss/vite": "^4.2.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^6.0.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
+  }
+}
