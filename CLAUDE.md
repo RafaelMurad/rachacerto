@@ -13,7 +13,7 @@ Web app que lê chat do WhatsApp + extrato bancário e devolve PIX simplificados
 
 ## Stack
 
-- **Astro 5** com `output: 'server'` e adapter `@astrojs/cloudflare`
+- **Astro 6** com `output: 'server'` e adapter `@astrojs/cloudflare`
 - **React** apenas em islands (`@astrojs/react`) — preferir `.astro` quando não precisa interatividade
 - **Tailwind v4** + **shadcn/ui** pra componentes React
 - **Supabase** (Postgres + Auth + Storage) — só a partir da v0.2
