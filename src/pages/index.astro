@@ -1,0 +1,69 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Nav from '../components/astro/Nav.astro'
+---
+<BaseLayout title="Racha a conta. Fecha o acerto.">
+  <div class="crt min-h-screen flex flex-col">
+    <Nav />
+
+    <!-- Hero split -->
+    <section
+      class="flex-1 grid md:grid-cols-2"
+      style="background: linear-gradient(160deg, #ff6b35, #f7c59f 60%, #efefd0)"
+    >
+      <!-- Left: copy -->
+      <div class="flex flex-col justify-center px-8 py-12 md:px-16">
+        <p class="font-mono text-xs tracking-widest uppercase mb-4" style="color: rgba(26,10,0,0.5)">
+          sem planilha. sem app. só o whatsapp.
+        </p>
+        <h1
+          class="font-serif text-5xl md:text-6xl font-black text-brand-dark leading-none mb-8"
+          style="text-shadow: 3px 3px 0 #ff6b35"
+        >
+          RACHA A<br />CONTA.<br />FECHA O<br />ACERTO.
+        </h1>
+        <a
+          href="/novo"
+          class="inline-block bg-brand-dark text-brand-orange font-mono text-sm font-extrabold tracking-widest px-6 py-3 self-start hover:bg-brand-orange hover:text-brand-dark transition-colors"
+        >
+          → COMEÇAR UM ACERTO
+        </a>
+      </div>
+
+      <!-- Right: result mockup -->
+      <div class="hidden md:flex items-center justify-center p-12">
+        <div class="w-full max-w-xs font-mono">
+          <div class="bg-brand-dark text-brand-orange text-xs tracking-widest px-3 py-1.5 mb-2">
+            VIAGEM PG // RESULTADO
+          </div>
+          <div class="flex flex-col gap-1.5 mb-3">
+            <div class="flex justify-between text-sm px-3 py-2" style="background: rgba(255,255,255,0.6)">
+              <span style="color: rgba(26,10,0,0.6)">Rafa → Ju</span>
+              <span class="font-extrabold text-brand-dark">R$ 87,50</span>
+            </div>
+            <div class="flex justify-between text-sm px-3 py-2" style="background: rgba(255,255,255,0.6)">
+              <span style="color: rgba(26,10,0,0.6)">João → Higor</span>
+              <span class="font-extrabold text-brand-dark">R$ 45,00</span>
+            </div>
+            <div class="flex justify-between text-sm px-3 py-2" style="background: rgba(255,255,255,0.6)">
+              <span style="color: rgba(26,10,0,0.6)">Ana → Rafa</span>
+              <span class="font-extrabold text-brand-dark">R$ 23,00</span>
+            </div>
+          </div>
+          <div class="bg-brand-orange text-white font-extrabold text-sm text-center px-3 py-2">
+            ▣ VER QR CODES →
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feature tags -->
+    <section class="bg-brand-dark px-4 py-3 flex flex-wrap gap-3 justify-center">
+      {['✓ sem cadastro', '✓ qualquer banco BR', '✓ PIX direto', '✓ 5 minutos'].map(tag => (
+        <span class="font-mono text-xs font-bold border px-3 py-1" style="color: #ff6b35; border-color: rgba(255,107,53,0.4); background: rgba(255,107,53,0.1)">
+          {tag}
+        </span>
+      ))}
+    </section>
+  </div>
+</BaseLayout>
