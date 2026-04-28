@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Nav from '../components/astro/Nav.astro'
+import SetupForm from '../components/react/SetupForm'
+---
+<BaseLayout title="Novo acerto">
+  <Nav showBack={true} />
+  <main
+    class="min-h-[calc(100vh-40px)]"
+    style="background: linear-gradient(160deg, #f7c59f, #efefd0)"
+  >
+    <div class="max-w-lg mx-auto px-4 py-10">
+      <div class="font-mono mb-8">
+        <p class="text-xs tracking-widest uppercase mb-1" style="color: rgba(26,10,0,0.5)">
+          passo 1 de 2
+        </p>
+        <h1
+          class="text-3xl font-black text-brand-dark"
+          style="font-family: Georgia, serif; text-shadow: 2px 2px 0 #ff6b35"
+        >
+          QUEM TÁ NO ACERTO?
+        </h1>
+      </div>
+      <SetupForm client:load />
+    </div>
+  </main>
+</BaseLayout>
