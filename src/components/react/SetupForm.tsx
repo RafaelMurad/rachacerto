@@ -30,7 +30,7 @@ export default function SetupForm() {
   const removePerson = (id: string) =>
     setPeople(prev => prev.filter(p => p.id !== id))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     const errs: typeof errors = {}
     if (!tripName.trim()) errs.name = 'Nome do acerto é obrigatório'
