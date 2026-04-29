@@ -1,5 +1,5 @@
-// URL-safe chars without ambiguous lookalikes (0/O, 1/l/I)
-const URL_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789'
+// URL-safe chars without ambiguous lookalikes (0/O, 1/l/I); 32 chars = zero modulo bias
+const URL_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789r'
 
 export function generateSlug(): string {
   const array = new Uint8Array(8)
