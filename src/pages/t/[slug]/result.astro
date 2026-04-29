@@ -11,15 +11,17 @@ const supabaseKey = import.meta.env.SUPABASE_SERVICE_KEY
 
 if (!supabaseUrl || !supabaseKey) return Astro.redirect('/')
 
-const token = getSessionToken(Astro.request, slug)
-if (!token) return Astro.redirect(`/t/${slug}/join`)
-
-const session = await validateSession(token, supabaseUrl, supabaseKey)
-if (!session) return Astro.redirect(`/t/${slug}/join?reason=expired`)
-
 const db = getSupabase(supabaseUrl, supabaseKey)
 const { data: trip } = await db.from('trips').select('name').eq('slug', slug).single()
 if (!trip) return new Response(null, { status: 404 })
+
+// Resolve current viewer's person ID (null = public visitor, not a participant)
+const token = getSessionToken(Astro.request, slug)
+let currentPersonId: string | null = null
+if (token) {
+  const session = await validateSession(token, supabaseUrl, supabaseKey)
+  if (session) currentPersonId = session.personId
+}
 ---
 
 <BaseLayout title={`Resultado · ${trip.name} · RachaCerto`}>
@@ -29,6 +31,6 @@ if (!trip) return new Response(null, { status: 404 })
       Quem deve quanto
     </h1>
     <p class="font-mono text-sm mb-8" style="color: rgba(26,10,0,0.5)">{trip.name}</p>
-    <ResultPage client:load slug={slug} />
+    <ResultPage client:load slug={slug} currentPersonId={currentPersonId} />
   </main>
 </BaseLayout>

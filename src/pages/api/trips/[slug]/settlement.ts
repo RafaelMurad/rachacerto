@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro'
-import { getSessionToken, validateSession } from '../../../../lib/session'
 import { getSupabase } from '../../../../lib/supabase'
 import { calcBalances, minimizeTransfers } from '../../../../lib/settle'
 import type { Transaction, BucketWithMembers, Person } from '../../../../lib/types'
@@ -9,7 +8,7 @@ const HEADERS = {
   'Cache-Control': 'no-store',
 } as const
 
-export const GET: APIRoute = async ({ request, params }) => {
+export const GET: APIRoute = async ({ params }) => {
   const slug = params.slug!
   const supabaseUrl = import.meta.env.SUPABASE_URL
   const supabaseKey = import.meta.env.SUPABASE_SERVICE_KEY
@@ -17,13 +16,14 @@ export const GET: APIRoute = async ({ request, params }) => {
     return new Response(JSON.stringify({ error: 'Configuração ausente' }), { status: 500, headers: HEADERS })
   }
 
-  const token = getSessionToken(request, slug)
-  if (!token) return new Response(JSON.stringify({ error: 'Não autenticado' }), { status: 401, headers: HEADERS })
-  const session = await validateSession(token, supabaseUrl, supabaseKey)
-  if (!session) return new Response(JSON.stringify({ error: 'Sessão expirada' }), { status: 401, headers: HEADERS })
-
   const db = getSupabase(supabaseUrl, supabaseKey)
-  const tripId = session.tripId
+
+  // Look up trip by slug — public, no session needed
+  const { data: tripRow } = await db.from('trips').select('id').eq('slug', slug).single()
+  if (!tripRow) {
+    return new Response(JSON.stringify({ error: 'Acerto não encontrado' }), { status: 404, headers: HEADERS })
+  }
+  const tripId = tripRow.id as string
 
   const { data: bucketRowsForIds } = await db.from('buckets').select('id').eq('trip_id', tripId)
   const bucketIds = (bucketRowsForIds ?? []).map(b => b.id as string)
