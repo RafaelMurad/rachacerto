@@ -2,6 +2,7 @@ export type Person = {
   id: string      // ULID
   name: string
   color: string   // hex da paleta, ex: '#FF6B35'
+  pixKey?: string
 }
 
 export type Trip = {
@@ -20,4 +21,36 @@ export type Transaction = {
   payerId: string | null   // Person.id, ou null se pagador não identificado
   source: 'chat' | 'statement' | 'manual'
   raw: string | null       // linha original ou null
+  bucketId: string | null  // null = belongs to default "Todos" bucket
+}
+
+export type Bucket = {
+  id: string
+  tripId: string
+  name: string
+  isDefault: boolean  // true for "Todos" — cannot be deleted
+}
+
+export type BucketWithMembers = Bucket & {
+  memberIds: string[]
+  transactionCount: number
+  totalCents: number
+}
+
+export type PersonBalance = {
+  personId: string
+  personName: string
+  personColor: string
+  paidCents: number
+  owedCents: number
+  netCents: number  // positive = creditor, negative = debtor
+}
+
+export type Settlement = {
+  fromId: string
+  fromName: string
+  toId: string
+  toName: string
+  toPixKey: string | null
+  amountCents: number
 }

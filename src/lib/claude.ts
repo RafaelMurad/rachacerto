@@ -102,6 +102,7 @@ ${text}`,
     source: 'chat' as const,
     payerId: t.payerId || null,
     raw: t.raw ?? null,
+    bucketId: null,
   }))
 }
 
@@ -127,7 +128,7 @@ export async function extractTransactionsFromStatementText(
   } catch {
     throw new Error('IA retornou resposta inválida — tente novamente')
   }
-  return raw.map(t => ({ ...t, raw: t.raw ?? null }))
+  return raw.map(t => ({ ...t, raw: t.raw ?? null, bucketId: null }))
 }
 
 export async function extractTransactionsFromStatementImage(
@@ -164,5 +165,5 @@ export async function extractTransactionsFromStatementImage(
   } catch {
     throw new Error('IA retornou resposta inválida — tente novamente')
   }
-  return raw.map(t => ({ ...t, raw: t.raw ?? null }))
+  return raw.map(t => ({ ...t, raw: t.raw ?? null, bucketId: null }))
 }
