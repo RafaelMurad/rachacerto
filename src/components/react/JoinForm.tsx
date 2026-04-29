@@ -10,6 +10,7 @@ interface Props {
 export default function JoinForm({ slug, people }: Props) {
   const [selectedId, setSelectedId] = useState('')
   const [pin, setPin] = useState('')
+  const [pixKey, setPixKey] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -28,11 +29,21 @@ export default function JoinForm({ slug, people }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug, personId: selectedId, pin: pin || undefined }),
       })
-      const data = await res.json() as { error?: string; requiresPin?: boolean }
+      const data = await res.json() as { error?: string; requiresPin?: boolean; personId?: string }
       if (!res.ok) {
         if (data.requiresPin) { setError('Digite seu PIN'); return }
         throw new Error(data.error ?? 'Erro ao entrar')
       }
+
+      // Optionally save PIX key (fire-and-forget — don't block redirect)
+      if (pixKey && data.personId) {
+        fetch(`/api/people/${data.personId}/pix-key`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pixKey, slug }),
+        }).catch(() => {/* ignore — non-critical */})
+      }
+
       window.location.href = `/t/${slug}/upload`
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado')
@@ -83,6 +94,24 @@ export default function JoinForm({ slug, people }: Props) {
             placeholder="4 dígitos"
             className="w-full border-2 border-brand-dark bg-transparent px-3 py-2 text-sm text-brand-dark placeholder:opacity-30 focus:outline-none focus:border-brand-orange"
           />
+        </div>
+      )}
+
+      {selectedId && (
+        <div className="mb-6">
+          <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: 'rgba(26,10,0,0.5)' }}>
+            Sua chave PIX <span style={{ color: 'rgba(26,10,0,0.35)', fontWeight: 400 }}>(opcional)</span>
+          </label>
+          <input
+            type="text"
+            value={pixKey}
+            onChange={e => setPixKey(e.target.value.trim())}
+            placeholder="CPF, telefone, e-mail ou chave aleatória"
+            className="w-full border-2 border-brand-dark bg-transparent px-3 py-2 text-sm text-brand-dark placeholder:opacity-30 focus:outline-none focus:border-brand-orange"
+          />
+          <p className="text-xs mt-1" style={{ color: 'rgba(26,10,0,0.4)' }}>
+            Usada para gerar QR codes PIX no resultado
+          </p>
         </div>
       )}
 
