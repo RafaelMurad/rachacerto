@@ -5,14 +5,12 @@ Web app que lê o chat do WhatsApp e o extrato bancário da viagem e devolve os 
 > **Stack:** Astro 6 · React 19 islands · Tailwind v4 · Supabase (Postgres) · Claude Haiku 4.5 · Cloudflare Pages + Workers
 
 <div align="center">
-  <img src="docs/screenshots/landing-mobile.png" width="280" alt="Landing page" />
-  &nbsp;&nbsp;&nbsp;
-  <img src="docs/screenshots/novo-mobile.png" width="280" alt="Criar acerto" />
+  <img src="docs/demo.gif" alt="RachaCerto demo" width="960" />
 </div>
 
 ---
 
-## O que funciona hoje (Sessão 3)
+## O que funciona hoje
 
 | Rota | O que é |
 |---|---|
@@ -22,8 +20,8 @@ Web app que lê o chat do WhatsApp e o extrato bancário da viagem e devolve os 
 | `/t/[slug]/join` | Seletor de nome (+ PIN opcional) para entrar no acerto |
 | `/t/[slug]/join/[token]` | Entrada instantânea via link de convite |
 | `/t/[slug]/upload` | Upload pessoal: extrato bancário (PDF/imagem) ou chat do WhatsApp |
-
-**O que ainda não está pronto:** revisão de transações, buckets de divisão, cálculo de saldo, QR codes PIX. Isso é Sessão 4+.
+| `/t/[slug]/review` | Revisão e edição de transações + configuração de buckets de divisão |
+| `/t/[slug]/result` | Saldos por pessoa + transferências mínimas com QR code PIX |
 
 ---
 
