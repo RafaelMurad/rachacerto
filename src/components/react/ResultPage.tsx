@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { PersonBalance, Settlement } from '../../lib/types'
 
 interface Props {
   slug: string
+  currentPersonId: string | null
 }
 
 function formatCents(cents: number): string {
@@ -12,13 +13,73 @@ function formatCents(cents: number): string {
 interface QRButtonProps {
   settlement: Settlement
   slug: string
+  currentPersonId: string | null
+  onPixKeySaved: () => void
 }
 
-function QRButton({ settlement, slug }: QRButtonProps) {
+function QRButton({ settlement, slug, currentPersonId, onPixKeySaved }: QRButtonProps) {
   const [qrUrl, setQrUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [qrError, setQrError] = useState<string | null>(null)
+  const [pixInput, setPixInput] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
+  const isCurrentUserRecipient = settlement.toId === currentPersonId
+
+  // Case 1: No PIX key, current user IS the recipient → show input to add key
+  if (!settlement.toPixKey && isCurrentUserRecipient) {
+    const handleSave = async () => {
+      const key = pixInput.trim()
+      if (!key) return
+      setSaving(true)
+      setSaveError(null)
+      try {
+        const res = await fetch(`/api/people/${settlement.toId}/pix-key`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pixKey: key, slug }),
+        })
+        const data = await res.json() as { ok?: boolean; error?: string }
+        if (!res.ok || !data.ok) {
+          setSaveError(data.error ?? 'Erro ao salvar chave')
+          return
+        }
+        onPixKeySaved()
+      } catch {
+        setSaveError('Erro de rede')
+      } finally {
+        setSaving(false)
+      }
+    }
+
+    return (
+      <div className="mt-1">
+        <p className="text-xs mb-2" style={{ color: 'rgba(26,10,0,0.5)' }}>
+          Adicione sua chave PIX para {settlement.fromName} pagar via QR:
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={pixInput}
+            onChange={e => setPixInput(e.target.value)}
+            placeholder="CPF, e-mail, celular ou chave aleatória"
+            className="flex-1 border border-brand-dark/30 px-2 py-1 text-xs font-mono text-brand-dark bg-transparent focus:outline-none focus:border-brand-orange"
+          />
+          <button
+            onClick={handleSave}
+            disabled={saving || !pixInput.trim()}
+            className="text-xs font-bold text-brand-orange border border-brand-orange px-2 py-1 hover:bg-brand-orange hover:text-white transition-colors disabled:opacity-40"
+          >
+            {saving ? '⏳' : 'SALVAR'}
+          </button>
+        </div>
+        {saveError && <p className="text-xs text-red-600 mt-1">{saveError}</p>}
+      </div>
+    )
+  }
+
+  // Case 2: No PIX key, current user is NOT the recipient → show message
   if (!settlement.toPixKey) {
     return (
       <span className="text-xs" style={{ color: 'rgba(26,10,0,0.4)' }}>
@@ -27,6 +88,7 @@ function QRButton({ settlement, slug }: QRButtonProps) {
     )
   }
 
+  // Case 3: PIX key exists — show QR generate button
   const handleGenerate = async () => {
     setLoading(true)
     setQrError(null)
@@ -86,13 +148,14 @@ function QRButton({ settlement, slug }: QRButtonProps) {
   )
 }
 
-export default function ResultPage({ slug }: Props) {
+export default function ResultPage({ slug, currentPersonId }: Props) {
   const [balances, setBalances] = useState<PersonBalance[]>([])
   const [settlements, setSettlements] = useState<Settlement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  const loadSettlement = useCallback(() => {
+    setLoading(true)
     fetch(`/api/trips/${slug}/settlement`)
       .then(r => r.json())
       .then((data: { balances?: PersonBalance[]; settlements?: Settlement[]; error?: string }) => {
@@ -103,6 +166,8 @@ export default function ResultPage({ slug }: Props) {
       .catch(() => setError('Erro ao carregar resultado'))
       .finally(() => setLoading(false))
   }, [slug])
+
+  useEffect(() => { loadSettlement() }, [loadSettlement])
 
   if (loading) return <p className="font-mono text-sm text-brand-dark/40 py-8 text-center">Calculando...</p>
   if (error) return <p className="font-mono text-sm text-red-600 py-4 border border-red-600 px-3">{error}</p>
@@ -148,7 +213,12 @@ export default function ResultPage({ slug }: Props) {
               {s.fromName} → {s.toName}
             </p>
             <p className="text-lg font-extrabold text-brand-dark mb-3">{formatCents(s.amountCents)}</p>
-            <QRButton settlement={s} slug={slug} />
+            <QRButton
+              settlement={s}
+              slug={slug}
+              currentPersonId={currentPersonId}
+              onPixKeySaved={loadSettlement}
+            />
           </div>
         ))}
       </div>
