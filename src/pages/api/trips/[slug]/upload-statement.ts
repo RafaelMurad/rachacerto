@@ -17,7 +17,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 
 export const POST: APIRoute = async ({ request, params }) => {
   const slug = params.slug!
-  const apiKey = import.meta.env.ANTHROPIC_API_KEY
+  const apiKey = import.meta.env.GEMINI_API_KEY
   const supabaseUrl = import.meta.env.SUPABASE_URL
   const supabaseKey = import.meta.env.SUPABASE_SERVICE_KEY
 

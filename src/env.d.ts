@@ -1,7 +1,7 @@
 /// <reference types="astro/client" />
 
 interface ImportMetaEnv {
-  readonly ANTHROPIC_API_KEY: string
+  readonly GEMINI_API_KEY: string
   readonly SUPABASE_URL: string
   readonly SUPABASE_SERVICE_KEY: string
 }
