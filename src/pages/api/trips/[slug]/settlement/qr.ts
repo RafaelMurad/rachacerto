@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     return new Response(JSON.stringify({ error: 'Payload inválido' }), { status: 400, headers: HEADERS })
   }
 
-  if (!body.pixKey || !body.amountCents || !body.merchantName) {
+  if (!body.pixKey || typeof body.amountCents !== 'number' || body.amountCents <= 0 || !body.merchantName) {
     return new Response(JSON.stringify({ error: 'pixKey, amountCents e merchantName são obrigatórios' }), { status: 400, headers: HEADERS })
   }
 

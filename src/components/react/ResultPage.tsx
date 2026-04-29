@@ -17,6 +17,7 @@ interface QRButtonProps {
 function QRButton({ settlement, slug }: QRButtonProps) {
   const [qrUrl, setQrUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [qrError, setQrError] = useState<string | null>(null)
 
   if (!settlement.toPixKey) {
     return (
@@ -28,6 +29,7 @@ function QRButton({ settlement, slug }: QRButtonProps) {
 
   const handleGenerate = async () => {
     setLoading(true)
+    setQrError(null)
     try {
       const res = await fetch(`/api/trips/${slug}/settlement/qr`, {
         method: 'POST',
@@ -38,8 +40,14 @@ function QRButton({ settlement, slug }: QRButtonProps) {
           merchantName: settlement.toName,
         }),
       })
-      const data = await res.json() as { qrUrl?: string; brCode?: string }
-      if (data.qrUrl) setQrUrl(data.qrUrl)
+      const data = await res.json() as { qrUrl?: string; brCode?: string; error?: string }
+      if (!res.ok || !data.qrUrl) {
+        setQrError(data.error ?? 'Não foi possível gerar o QR. Verifique a chave PIX.')
+        return
+      }
+      setQrUrl(data.qrUrl)
+    } catch {
+      setQrError('Erro de rede ao gerar QR')
     } finally {
       setLoading(false)
     }
@@ -63,13 +71,18 @@ function QRButton({ settlement, slug }: QRButtonProps) {
   }
 
   return (
-    <button
-      onClick={handleGenerate}
-      disabled={loading}
-      className="text-xs font-bold text-brand-orange border border-brand-orange px-2 py-1 hover:bg-brand-orange hover:text-white transition-colors disabled:opacity-50"
-    >
-      {loading ? '⏳' : '→ VER QR PIX'}
-    </button>
+    <div>
+      <button
+        onClick={handleGenerate}
+        disabled={loading}
+        className="text-xs font-bold text-brand-orange border border-brand-orange px-2 py-1 hover:bg-brand-orange hover:text-white transition-colors disabled:opacity-50"
+      >
+        {loading ? '⏳' : '→ VER QR PIX'}
+      </button>
+      {qrError && (
+        <p className="text-xs text-red-600 mt-1">{qrError}</p>
+      )}
+    </div>
   )
 }
 
