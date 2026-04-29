@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+import Nav from '../../../components/astro/Nav.astro'
+import ReviewPage from '../../../components/react/ReviewPage'
+import { getSupabase } from '../../../lib/supabase'
+import { getSessionToken, validateSession } from '../../../lib/session'
+
+const { slug } = Astro.params as { slug: string }
+const supabaseUrl = import.meta.env.SUPABASE_URL
+const supabaseKey = import.meta.env.SUPABASE_SERVICE_KEY
+
+if (!supabaseUrl || !supabaseKey) return Astro.redirect('/')
+
+const token = getSessionToken(Astro.request, slug)
+if (!token) return Astro.redirect(`/t/${slug}/join`)
+
+const session = await validateSession(token, supabaseUrl, supabaseKey)
+if (!session) return Astro.redirect(`/t/${slug}/join?reason=expired`)
+
+const db = getSupabase(supabaseUrl, supabaseKey)
+const { data: trip } = await db.from('trips').select('name').eq('slug', slug).single()
+if (!trip) return new Response(null, { status: 404 })
+
+const { data: peopleRows } = await db
+  .from('people')
+  .select('id, name, color, pix_key')
+  .eq('trip_id', session.tripId)
+  .order('created_at')
+
+const people = (peopleRows ?? []).map(p => ({
+  id: p.id as string,
+  name: p.name as string,
+  color: p.color as string,
+  pixKey: (p.pix_key as string | null) ?? undefined,
+}))
+---
+
+<BaseLayout title={`Revisão · ${trip.name} · RachaCerto`}>
+  <Nav showBack={true} />
+  <main class="max-w-lg mx-auto px-4 py-8">
+    <h1 class="font-mono text-xl font-extrabold tracking-tight text-brand-dark mb-1">
+      Revisão
+    </h1>
+    <p class="font-mono text-sm mb-8" style="color: rgba(26,10,0,0.5)">{trip.name}</p>
+    <ReviewPage client:load slug={slug} people={people} />
+  </main>
+</BaseLayout>

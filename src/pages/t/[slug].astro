@@ -117,6 +117,15 @@ const origin = new URL(Astro.request.url).origin
       </div>
     </div>
 
+    {(txRows ?? []).length > 0 && (
+      <a
+        href={`/t/${slug}/review`}
+        class="block w-full mb-4 border-2 border-brand-orange text-brand-orange font-extrabold tracking-widest text-sm px-6 py-3 hover:bg-brand-orange hover:text-brand-dark transition-colors text-center"
+      >
+        → REVISAR TRANSAÇÕES ({(txRows ?? []).length})
+      </a>
+    )}
+
     {!currentSession && (
       <a
         href={`/t/${slug}/join`}

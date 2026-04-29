@@ -1,6 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { ulid } from 'ulid'
 import type { Person, Transaction } from './types'
+
+const MODEL = 'gemini-2.5-flash-lite'
+const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
 const CHAT_SYSTEM_PROMPT = `Você é um assistente financeiro. Extraia transações de pagamento de um chat do WhatsApp exportado.
 
@@ -65,43 +67,77 @@ type RawStatementTransaction = {
   raw?: string
 }
 
+type GeminiResponse = {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string }> }
+  }>
+  error?: { message: string }
+}
+
+async function callGemini(
+  apiKey: string,
+  systemPrompt: string | null,
+  parts: Array<{ text: string } | { inline_data: { mime_type: string; data: string } }>
+): Promise<string> {
+  const body: Record<string, unknown> = {
+    contents: [{ parts }],
+    generationConfig: {
+      maxOutputTokens: 4096,
+      responseMimeType: 'application/json',
+    },
+  }
+
+  if (systemPrompt) {
+    body.system_instruction = { parts: [{ text: systemPrompt }] }
+  }
+
+  const res = await fetch(`${API_BASE}/${MODEL}:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  const data = await res.json() as GeminiResponse
+
+  if (!res.ok || data.error) {
+    throw new Error(data.error?.message ?? `Gemini API error ${res.status}`)
+  }
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) throw new Error('Resposta inesperada da IA')
+  return text
+}
+
 export async function extractTransactionsFromChat(
   text: string,
   people: Person[],
   apiKey: string
 ): Promise<Transaction[]> {
-  const client = new Anthropic({ apiKey })
-
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
-    system: CHAT_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: `Pessoas no acerto: ${JSON.stringify(people.map(p => ({ id: p.id, name: p.name })))}
+  const raw = await callGemini(
+    apiKey,
+    CHAT_SYSTEM_PROMPT,
+    [{
+      text: `Pessoas no acerto: ${JSON.stringify(people.map(p => ({ id: p.id, name: p.name })))}
 
 Chat do WhatsApp:
 ${text}`,
-      },
-    ],
-  })
+    }]
+  )
 
-  const content = response.content[0]
-  if (content.type !== 'text') throw new Error('Resposta inesperada da IA')
-
-  let raw: RawChatTransaction[]
+  let parsed: RawChatTransaction[]
   try {
-    raw = JSON.parse(content.text) as RawChatTransaction[]
+    parsed = JSON.parse(raw) as RawChatTransaction[]
   } catch {
     throw new Error('IA retornou resposta inválida — tente novamente')
   }
-  return raw.map(t => ({
+
+  return parsed.map(t => ({
     ...t,
     id: ulid(),
     source: 'chat' as const,
     payerId: t.payerId || null,
     raw: t.raw ?? null,
+    bucketId: null,
   }))
 }
 
@@ -109,25 +145,16 @@ export async function extractTransactionsFromStatementText(
   text: string,
   apiKey: string
 ): Promise<Omit<Transaction, 'id' | 'payerId' | 'source'>[]> {
-  const client = new Anthropic({ apiKey })
+  const raw = await callGemini(apiKey, STATEMENT_TEXT_PROMPT, [{ text }])
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
-    system: STATEMENT_TEXT_PROMPT,
-    messages: [{ role: 'user', content: text }],
-  })
-
-  const content = response.content[0]
-  if (content.type !== 'text') throw new Error('Resposta inesperada da IA')
-
-  let raw: RawStatementTransaction[]
+  let parsed: RawStatementTransaction[]
   try {
-    raw = JSON.parse(content.text) as RawStatementTransaction[]
+    parsed = JSON.parse(raw) as RawStatementTransaction[]
   } catch {
     throw new Error('IA retornou resposta inválida — tente novamente')
   }
-  return raw.map(t => ({ ...t, raw: t.raw ?? null }))
+
+  return parsed.map(t => ({ ...t, raw: t.raw ?? null, bucketId: null }))
 }
 
 export async function extractTransactionsFromStatementImage(
@@ -135,34 +162,21 @@ export async function extractTransactionsFromStatementImage(
   mimeType: 'image/png' | 'image/jpeg' | 'image/webp',
   apiKey: string
 ): Promise<Omit<Transaction, 'id' | 'payerId' | 'source'>[]> {
-  const client = new Anthropic({ apiKey })
+  const raw = await callGemini(
+    apiKey,
+    null, // image instructions go in user turn alongside the image
+    [
+      { inline_data: { mime_type: mimeType, data: base64 } },
+      { text: STATEMENT_IMAGE_PROMPT },
+    ]
+  )
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        // image instructions go in the user turn alongside the image (not system prompt)
-        content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: mimeType, data: base64 },
-          },
-          { type: 'text', text: STATEMENT_IMAGE_PROMPT },
-        ],
-      },
-    ],
-  })
-
-  const content = response.content[0]
-  if (content.type !== 'text') throw new Error('Resposta inesperada da IA')
-
-  let raw: RawStatementTransaction[]
+  let parsed: RawStatementTransaction[]
   try {
-    raw = JSON.parse(content.text) as RawStatementTransaction[]
+    parsed = JSON.parse(raw) as RawStatementTransaction[]
   } catch {
     throw new Error('IA retornou resposta inválida — tente novamente')
   }
-  return raw.map(t => ({ ...t, raw: t.raw ?? null }))
+
+  return parsed.map(t => ({ ...t, raw: t.raw ?? null, bucketId: null }))
 }
