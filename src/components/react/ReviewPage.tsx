@@ -125,7 +125,8 @@ function EditForm({ tx, people, buckets, onSave, onCancel, slug }: EditFormProps
       })
       const data = await res.json() as { transaction?: Transaction; error?: string }
       if (!res.ok) throw new Error(data.error ?? 'Erro ao salvar')
-      onSave(data.transaction!)
+      if (!data.transaction) throw new Error('Resposta inválida do servidor')
+      onSave(data.transaction)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado')
     } finally {
@@ -301,8 +302,16 @@ export default function ReviewPage({ slug, people }: Props) {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deletar esta transação?')) return
-    const res = await fetch(`/api/trips/${slug}/transactions/${id}`, { method: 'DELETE' })
-    if (res.ok) setTransactions(prev => prev.filter(t => t.id !== id))
+    try {
+      const res = await fetch(`/api/trips/${slug}/transactions/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json() as { error?: string }
+        throw new Error(data.error ?? 'Erro ao deletar')
+      }
+      setTransactions(prev => prev.filter(t => t.id !== id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao deletar transação')
+    }
   }
 
   const handleToggleMember = async (bucketId: string, personId: string, currentlyIn: boolean) => {
@@ -312,42 +321,67 @@ export default function ReviewPage({ slug, people }: Props) {
       ? bucket.memberIds.filter(id => id !== personId)
       : [...bucket.memberIds, personId]
 
-    const res = await fetch(`/api/trips/${slug}/buckets/${bucketId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memberIds: newMemberIds }),
-    })
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/trips/${slug}/buckets/${bucketId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberIds: newMemberIds }),
+      })
+      if (!res.ok) {
+        const data = await res.json() as { error?: string }
+        throw new Error(data.error ?? 'Erro ao atualizar membros')
+      }
       setBuckets(prev => prev.map(b => b.id === bucketId ? { ...b, memberIds: newMemberIds } : b))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar membros')
     }
   }
 
   const handleDeleteBucket = async (bucketId: string) => {
     if (!confirm('Deletar este bucket? As transações voltam para "Todos".')) return
-    const res = await fetch(`/api/trips/${slug}/buckets/${bucketId}`, { method: 'DELETE' })
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/trips/${slug}/buckets/${bucketId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json() as { error?: string }
+        throw new Error(data.error ?? 'Erro ao deletar bucket')
+      }
       setBuckets(prev => prev.filter(b => b.id !== bucketId))
       setTransactions(prev => prev.map(t => t.bucketId === bucketId ? { ...t, bucketId: null } : t))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao deletar bucket')
     }
   }
 
   const handleRenameBucket = async (bucketId: string, name: string) => {
-    const res = await fetch(`/api/trips/${slug}/buckets/${bucketId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    })
-    if (res.ok) setBuckets(prev => prev.map(b => b.id === bucketId ? { ...b, name } : b))
+    try {
+      const res = await fetch(`/api/trips/${slug}/buckets/${bucketId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      if (!res.ok) {
+        const data = await res.json() as { error?: string }
+        throw new Error(data.error ?? 'Erro ao renomear bucket')
+      }
+      setBuckets(prev => prev.map(b => b.id === bucketId ? { ...b, name } : b))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao renomear bucket')
+    }
   }
 
   const handleCreateBucket = async () => {
-    const res = await fetch(`/api/trips/${slug}/buckets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Novo bucket', memberIds: people.map(p => p.id) }),
-    })
-    const data = await res.json() as { bucket?: BucketWithMembers }
-    if (res.ok && data.bucket) setBuckets(prev => [...prev, data.bucket!])
+    try {
+      const res = await fetch(`/api/trips/${slug}/buckets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Novo bucket', memberIds: people.map(p => p.id) }),
+      })
+      const data = await res.json() as { bucket?: BucketWithMembers; error?: string }
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao criar bucket')
+      if (data.bucket) setBuckets(prev => [...prev, data.bucket!])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao criar bucket')
+    }
   }
 
   const tabBtn = (t: Tab, label: string, count: number) => (
