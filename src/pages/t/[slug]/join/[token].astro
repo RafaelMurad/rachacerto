@@ -1,0 +1,44 @@
+---
+import { getSupabase } from '../../../../lib/supabase'
+import { generateToken } from '../../../../lib/slug'
+import { makeSessionCookie } from '../../../../lib/session'
+import { ulid } from 'ulid'
+
+const { slug, token: inviteToken } = Astro.params as { slug: string; token: string }
+const supabaseUrl = import.meta.env.SUPABASE_URL
+const supabaseKey = import.meta.env.SUPABASE_SERVICE_KEY
+
+if (!supabaseUrl || !supabaseKey) return Astro.redirect(`/t/${slug}/join`)
+
+const db = getSupabase(supabaseUrl, supabaseKey)
+
+const { data: person } = await db
+  .from('people')
+  .select('id, name, trip_id')
+  .eq('invite_token', inviteToken)
+  .single()
+
+if (!person) {
+  // Invalid token — fall back to name picker
+  return Astro.redirect(`/t/${slug}/join`)
+}
+
+// Create session
+const sessionToken = generateToken()
+const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+await db.from('sessions').insert({
+  id: ulid(),
+  person_id: person.id,
+  token: sessionToken,
+  expires_at: expiresAt,
+})
+
+return new Response(null, {
+  status: 302,
+  headers: {
+    Location: `/t/${slug}/upload`,
+    'Set-Cookie': makeSessionCookie(slug, sessionToken),
+  },
+})
+---

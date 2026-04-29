@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+import Nav from '../../../components/astro/Nav.astro'
+import JoinForm from '../../../components/react/JoinForm'
+import { getSupabase } from '../../../lib/supabase'
+import { getSessionToken, validateSession } from '../../../lib/session'
+
+const { slug } = Astro.params as { slug: string }
+const supabaseUrl = import.meta.env.SUPABASE_URL
+const supabaseKey = import.meta.env.SUPABASE_SERVICE_KEY
+
+if (!supabaseUrl || !supabaseKey) return Astro.redirect('/')
+
+// If already has a valid session, skip join and go to upload
+const token = getSessionToken(Astro.request, slug)
+if (token) {
+  const session = await validateSession(token, supabaseUrl, supabaseKey)
+  if (session) return Astro.redirect(`/t/${slug}/upload`)
+}
+
+const db = getSupabase(supabaseUrl, supabaseKey)
+
+const { data: trip } = await db.from('trips').select('id, name').eq('slug', slug).single()
+if (!trip) return new Response(null, { status: 404 })
+
+const { data: people } = await db
+  .from('people')
+  .select('id, name, color, pin_hash')
+  .eq('trip_id', trip.id)
+  .order('created_at')
+
+const peopleForForm = (people ?? []).map(p => ({
+  id: p.id,
+  name: p.name,
+  color: p.color,
+  hasPin: p.pin_hash !== null,
+}))
+---
+
+<BaseLayout title={`Entrar em ${trip.name} · RachaCerto`}>
+  <Nav showBack={true} />
+  <main class="max-w-md mx-auto px-4 py-8">
+    <h1 class="font-mono text-xl font-extrabold tracking-tight text-brand-dark mb-1">
+      Entrar no acerto
+    </h1>
+    <p class="font-mono text-sm mb-8" style="color: rgba(26,10,0,0.5)">{trip.name}</p>
+    <JoinForm client:load slug={slug} people={peopleForForm} />
+  </main>
+</BaseLayout>
