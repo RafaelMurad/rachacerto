@@ -118,9 +118,9 @@ try {
   await page.click('button:has-text("+")')
   await page.waitForSelector('text=Ju')
 
-  await page.fill('input[placeholder="Nome da pessoa"]', 'Pedro')
+  await page.fill('input[placeholder="Nome da pessoa"]', 'Juca')
   await page.click('button:has-text("+")')
-  await page.waitForSelector('text=Pedro')
+  await page.waitForSelector('text=Juca')
 
   await page.waitForTimeout(800)
 
@@ -203,26 +203,26 @@ try {
 
   // ── Export via gifski (better quality than palettegen) ────────────────────
   step('Extracting frames')
-  // Clean frames dir
   rmSync(FRAMES_DIR, { recursive: true, force: true })
   mkdirSync(FRAMES_DIR)
 
-  // Add 0.5s black fade-in and fade-out to the video, then extract frames as PNG
+  // Extract PNG frames with a 0.4s fade-in.
+  // Note: Playwright's WebM has Duration: N/A, so we can't probe it — fade-out is applied
+  // after we know the frame count.
   execSync(
-    `ffmpeg -y -i "${videoPath}" \
-      -vf "fps=12,scale=960:-1:flags=lanczos,fade=in:st=0:d=0.4,fade=out:st=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "${videoPath}" | awk '{print $1-0.5}')" \
-      "${FRAMES_DIR}/frame%04d.png"`,
+    `ffmpeg -y -i '${videoPath}' -vf "fps=12,scale=960:-1:flags=lanczos,fade=in:st=0:d=0.4" '${FRAMES_DIR}/frame%04d.png'`,
     { stdio: 'pipe' }
   )
 
-  const frameCount = readdirSync(FRAMES_DIR).filter(f => f.endsWith('.png')).length
+  const pngFiles = readdirSync(FRAMES_DIR).filter(f => f.endsWith('.png')).sort()
+  const frameCount = pngFiles.length
   log(`${frameCount} frames extracted`)
 
   step('Encoding GIF with gifski')
   mkdirSync('docs', { recursive: true })
 
   execSync(
-    `gifski --fps 12 --quality 90 -o "${OUT_GIF}" "${FRAMES_DIR}/frame"*.png`,
+    `gifski --fps 12 --quality 90 -o '${OUT_GIF}' '${FRAMES_DIR}/frame'*.png`,
     { stdio: 'inherit' }
   )
 
