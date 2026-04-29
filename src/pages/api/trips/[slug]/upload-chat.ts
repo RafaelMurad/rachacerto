@@ -94,7 +94,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   }
 
   // Save to DB — payer_id may be null for unresolved payers
-  const rows = extracted.map(t => ({
+  const dbRows = extracted.map(t => ({
     id: t.id,
     trip_id: session.tripId,
     payer_id: t.payerId,
@@ -105,7 +105,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     raw: t.raw,
   }))
 
-  const { error: insertErr } = await db.from('transactions').insert(rows)
+  const { error: insertErr } = await db.from('transactions').insert(dbRows)
   if (insertErr) {
     return new Response(
       JSON.stringify({ error: 'Erro ao salvar transações' }),
@@ -113,8 +113,18 @@ export const POST: APIRoute = async ({ request, params }) => {
     )
   }
 
+  const transactions = dbRows.map(r => ({
+    id: r.id,
+    date: r.date,
+    description: r.description,
+    amount_cents: r.amount_cents,
+    payerId: r.payer_id,
+    source: r.source as 'chat',
+    raw: r.raw,
+  }))
+
   return new Response(
-    JSON.stringify({ transactions: rows }),
+    JSON.stringify({ transactions }),
     { headers: HEADERS }
   )
 }

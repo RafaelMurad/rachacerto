@@ -131,7 +131,7 @@ export const POST: APIRoute = async ({ request, params }) => {
 
   // Save to DB with payer = session person
   const db = getSupabase(supabaseUrl, supabaseKey)
-  const rows = rawTransactions.map(t => ({
+  const dbRows = rawTransactions.map(t => ({
     id: ulid(),
     trip_id: session.tripId,
     payer_id: session.personId,
@@ -142,7 +142,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     raw: t.raw,
   }))
 
-  const { error: insertErr } = await db.from('transactions').insert(rows)
+  const { error: insertErr } = await db.from('transactions').insert(dbRows)
   if (insertErr) {
     return new Response(
       JSON.stringify({ error: 'Erro ao salvar transações' }),
@@ -150,8 +150,18 @@ export const POST: APIRoute = async ({ request, params }) => {
     )
   }
 
+  const transactions = dbRows.map(r => ({
+    id: r.id,
+    date: r.date,
+    description: r.description,
+    amount_cents: r.amount_cents,
+    payerId: r.payer_id,
+    source: r.source as 'statement',
+    raw: r.raw,
+  }))
+
   return new Response(
-    JSON.stringify({ transactions: rows }),
+    JSON.stringify({ transactions }),
     { headers: HEADERS }
   )
 }
