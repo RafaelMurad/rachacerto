@@ -40,7 +40,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const db = getSupabase(supabaseUrl, supabaseKey)
   let person: PersonRow | null = null
-  let slug: string
+  let slug = ''
 
   if (body.inviteToken) {
     // Invite link path: find person by invite token, then get trip slug

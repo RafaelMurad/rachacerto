@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { getSessionToken, validateSession } from '../../../lib/session'
 
-const HEADERS = { 'Content-Type': 'application/json' } as const
+const HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } as const
 
 export const GET: APIRoute = async ({ request, params }) => {
   const slug = params.slug!
