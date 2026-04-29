@@ -1,0 +1,41 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+import Nav from '../../../components/astro/Nav.astro'
+import UploadPanel from '../../../components/react/UploadPanel'
+import { getSupabase } from '../../../lib/supabase'
+import { getSessionToken, validateSession } from '../../../lib/session'
+
+const { slug } = Astro.params as { slug: string }
+const supabaseUrl = import.meta.env.SUPABASE_URL
+const supabaseKey = import.meta.env.SUPABASE_SERVICE_KEY
+
+if (!supabaseUrl || !supabaseKey) return Astro.redirect('/')
+
+// Require session — redirect to join if not authenticated
+const token = getSessionToken(Astro.request, slug)
+if (!token) return Astro.redirect(`/t/${slug}/join`)
+
+const session = await validateSession(token, supabaseUrl, supabaseKey)
+if (!session) return Astro.redirect(`/t/${slug}/join?reason=expired`)
+
+// Fetch trip name for the page title
+const db = getSupabase(supabaseUrl, supabaseKey)
+const { data: trip } = await db.from('trips').select('name').eq('slug', slug).single()
+if (!trip) return new Response(null, { status: 404 })
+---
+
+<BaseLayout title={`Meus uploads · ${trip.name} · RachaCerto`}>
+  <Nav showBack={true} />
+  <main class="max-w-md mx-auto px-4 py-8">
+    <h1 class="font-mono text-xl font-extrabold tracking-tight text-brand-dark mb-1">
+      Seus uploads
+    </h1>
+    <p class="font-mono text-sm mb-8" style="color: rgba(26,10,0,0.5)">{trip.name}</p>
+    <UploadPanel
+      client:load
+      slug={slug}
+      personName={session.personName}
+      personColor={session.personColor}
+    />
+  </main>
+</BaseLayout>
