@@ -66,10 +66,19 @@ export const POST: APIRoute = async ({ request, params }) => {
   }
 
   const mimeType = file.type
+
+  // Check MIME type first — before reading the full buffer into memory
+  if (mimeType !== 'application/pdf' && mimeType !== 'image/png' && mimeType !== 'image/jpeg' && mimeType !== 'image/webp') {
+    return new Response(
+      JSON.stringify({ error: 'Tipo de arquivo não suportado — use PDF, PNG ou JPG' }),
+      { status: 400, headers: HEADERS }
+    )
+  }
+
   const arrayBuffer = await file.arrayBuffer()
 
   // Extract transactions based on file type
-  let rawTransactions: Array<{ date: string; description: string; amount_cents: number; raw: string | null }>
+  let rawTransactions: Awaited<ReturnType<typeof extractTransactionsFromStatementText>>
 
   if (mimeType === 'application/pdf') {
     let text: string
@@ -82,8 +91,15 @@ export const POST: APIRoute = async ({ request, params }) => {
         { status: 400, headers: HEADERS }
       )
     }
-    rawTransactions = await extractTransactionsFromStatementText(text, apiKey)
-  } else if (mimeType === 'image/png' || mimeType === 'image/jpeg' || mimeType === 'image/webp') {
+    try {
+      rawTransactions = await extractTransactionsFromStatementText(text, apiKey)
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ error: err instanceof Error ? err.message : 'Erro na extração do extrato' }),
+        { status: 500, headers: HEADERS }
+      )
+    }
+  } else {
     // Encode image to base64 in chunks to avoid stack overflow on large files
     const bytes = new Uint8Array(arrayBuffer)
     let binary = ''
@@ -92,16 +108,18 @@ export const POST: APIRoute = async ({ request, params }) => {
       binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
     }
     const base64 = btoa(binary)
-    rawTransactions = await extractTransactionsFromStatementImage(
-      base64,
-      mimeType as 'image/png' | 'image/jpeg' | 'image/webp',
-      apiKey
-    )
-  } else {
-    return new Response(
-      JSON.stringify({ error: 'Tipo de arquivo não suportado — use PDF, PNG ou JPG' }),
-      { status: 400, headers: HEADERS }
-    )
+    try {
+      rawTransactions = await extractTransactionsFromStatementImage(
+        base64,
+        mimeType as 'image/png' | 'image/jpeg' | 'image/webp',
+        apiKey
+      )
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ error: err instanceof Error ? err.message : 'Erro na extração do extrato' }),
+        { status: 500, headers: HEADERS }
+      )
+    }
   }
 
   if (rawTransactions.length === 0) {
