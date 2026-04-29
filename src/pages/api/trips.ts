@@ -88,6 +88,34 @@ export const POST: APIRoute = async ({ request }) => {
     )
   }
 
+  // Create default "Todos" bucket with all trip members
+  const bucketId = ulid()
+  const { error: bucketErr } = await db.from('buckets').insert({
+    id: bucketId,
+    trip_id: tripId,
+    name: 'Todos',
+    is_default: true,
+  })
+
+  if (bucketErr) {
+    await db.from('trips').delete().eq('id', tripId)
+    return new Response(
+      JSON.stringify({ error: 'Erro ao criar bucket padrão' }),
+      { status: 500, headers: HEADERS }
+    )
+  }
+
+  const memberRows = people.map(p => ({ bucket_id: bucketId, person_id: p.id }))
+  const { error: memberErr } = await db.from('bucket_members').insert(memberRows)
+
+  if (memberErr) {
+    await db.from('trips').delete().eq('id', tripId)
+    return new Response(
+      JSON.stringify({ error: 'Erro ao adicionar membros ao bucket padrão' }),
+      { status: 500, headers: HEADERS }
+    )
+  }
+
   const { data: savedPeople } = await db
     .from('people')
     .select('id, name, color, invite_token')
