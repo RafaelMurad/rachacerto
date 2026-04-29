@@ -1,12 +1,5 @@
 import { useState, useCallback } from 'react'
-
-type Transaction = {
-  id: string
-  date: string
-  description: string
-  amount_cents: number
-  source: 'chat' | 'statement' | 'manual'
-}
+import type { Transaction } from '../../lib/types'
 
 interface Props {
   slug: string
@@ -26,7 +19,7 @@ export default function UploadPanel({ slug, personName, personColor }: Props) {
 
   // ── Statement upload ──────────────────────────────────────────────────────
 
-  const uploadStatement = async (file: File) => {
+  const uploadStatement = useCallback(async (file: File) => {
     const allowed = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp']
     if (!allowed.includes(file.type)) {
       setError('Tipo de arquivo não suportado — use PDF, PNG ou JPG')
@@ -52,14 +45,14 @@ export default function UploadPanel({ slug, personName, personColor }: Props) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [slug])
 
   const handleStatementDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer.files[0]
     if (file) uploadStatement(file)
-  }, [slug])
+  }, [slug, uploadStatement])
 
   // ── Chat upload ───────────────────────────────────────────────────────────
 
@@ -74,22 +67,24 @@ export default function UploadPanel({ slug, personName, personColor }: Props) {
     setWarning('')
   }
 
-  const handleChatFile = (file: File) => {
+  const handleChatFile = useCallback((file: File) => {
     if (!file.name.endsWith('.txt')) {
       setError('Apenas arquivos .txt são aceitos')
       return
     }
     const reader = new FileReader()
-    reader.onload = e => loadChatText(e.target?.result as string)
+    reader.onload = e => {
+      if (typeof e.target?.result === 'string') loadChatText(e.target.result)
+    }
     reader.readAsText(file, 'utf-8')
-  }
+  }, [])
 
   const handleChatDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer.files[0]
     if (file) handleChatFile(file)
-  }, [])
+  }, [handleChatFile])
 
   const handleChatPaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
     const pasted = e.clipboardData.getData('text')
