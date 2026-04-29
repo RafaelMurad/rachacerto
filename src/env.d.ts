@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   readonly ANTHROPIC_API_KEY: string
+  readonly SUPABASE_URL: string
+  readonly SUPABASE_SERVICE_KEY: string
 }
 
 interface ImportMeta {

@@ -165,7 +165,7 @@ export default function ChatUploader() {
                     </span>
                   </div>
                   <span className="font-extrabold text-brand-dark whitespace-nowrap ml-2">
-                    R$ {(t.amount / 100).toFixed(2).replace('.', ',')}
+                    R$ {(t.amount_cents / 100).toFixed(2).replace('.', ',')}
                   </span>
                 </div>
               )

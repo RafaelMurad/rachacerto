@@ -37,8 +37,10 @@ export default function SetupForm() {
     if (people.length < 2) errs.people = 'Adicione pelo menos 2 pessoas'
     if (Object.keys(errs).length) { setErrors(errs); return }
 
+    const id = ulid()
     const trip: Trip = {
-      id: ulid(),
+      id,
+      slug: id.slice(-8).toLowerCase(),
       name: tripName.trim(),
       people,
       createdAt: new Date().toISOString(),
