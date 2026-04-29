@@ -55,14 +55,14 @@ type RawChatTransaction = {
   description: string
   amount_cents: number
   payerId: string
-  raw: string
+  raw?: string
 }
 
 type RawStatementTransaction = {
   date: string
   description: string
   amount_cents: number
-  raw: string
+  raw?: string
 }
 
 export async function extractTransactionsFromChat(
@@ -90,7 +90,12 @@ ${text}`,
   const content = response.content[0]
   if (content.type !== 'text') throw new Error('Resposta inesperada da IA')
 
-  const raw = JSON.parse(content.text) as RawChatTransaction[]
+  let raw: RawChatTransaction[]
+  try {
+    raw = JSON.parse(content.text) as RawChatTransaction[]
+  } catch {
+    throw new Error('IA retornou resposta inválida — tente novamente')
+  }
   return raw.map(t => ({
     ...t,
     id: ulid(),
@@ -116,7 +121,12 @@ export async function extractTransactionsFromStatementText(
   const content = response.content[0]
   if (content.type !== 'text') throw new Error('Resposta inesperada da IA')
 
-  const raw = JSON.parse(content.text) as RawStatementTransaction[]
+  let raw: RawStatementTransaction[]
+  try {
+    raw = JSON.parse(content.text) as RawStatementTransaction[]
+  } catch {
+    throw new Error('IA retornou resposta inválida — tente novamente')
+  }
   return raw.map(t => ({ ...t, raw: t.raw ?? null }))
 }
 
@@ -133,6 +143,7 @@ export async function extractTransactionsFromStatementImage(
     messages: [
       {
         role: 'user',
+        // image instructions go in the user turn alongside the image (not system prompt)
         content: [
           {
             type: 'image',
@@ -147,6 +158,11 @@ export async function extractTransactionsFromStatementImage(
   const content = response.content[0]
   if (content.type !== 'text') throw new Error('Resposta inesperada da IA')
 
-  const raw = JSON.parse(content.text) as RawStatementTransaction[]
+  let raw: RawStatementTransaction[]
+  try {
+    raw = JSON.parse(content.text) as RawStatementTransaction[]
+  } catch {
+    throw new Error('IA retornou resposta inválida — tente novamente')
+  }
   return raw.map(t => ({ ...t, raw: t.raw ?? null }))
 }
