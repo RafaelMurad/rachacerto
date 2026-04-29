@@ -23,6 +23,12 @@ if (!person) {
   return Astro.redirect(`/t/${slug}/join`)
 }
 
+// Verify the invite token belongs to this trip (prevents cross-trip token reuse)
+const { data: trip } = await db.from('trips').select('id').eq('slug', slug).single()
+if (!trip || person.trip_id !== trip.id) {
+  return Astro.redirect(`/t/${slug}/join`)
+}
+
 // Create session
 const sessionToken = generateToken()
 const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()

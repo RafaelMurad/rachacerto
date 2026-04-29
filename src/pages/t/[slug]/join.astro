@@ -23,11 +23,13 @@ const db = getSupabase(supabaseUrl, supabaseKey)
 const { data: trip } = await db.from('trips').select('id, name').eq('slug', slug).single()
 if (!trip) return new Response(null, { status: 404 })
 
-const { data: people } = await db
+const { data: people, error: peopleError } = await db
   .from('people')
   .select('id, name, color, pin_hash')
   .eq('trip_id', trip.id)
   .order('created_at')
+
+if (peopleError) return new Response(null, { status: 500 })
 
 const peopleForForm = (people ?? []).map(p => ({
   id: p.id,
