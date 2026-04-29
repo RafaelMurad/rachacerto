@@ -58,10 +58,17 @@ export const POST: APIRoute = async ({ request, params }) => {
 
   // Fetch people for this trip (needed for payer inference)
   const db = getSupabase(supabaseUrl, supabaseKey)
-  const { data: peopleRows } = await db
+  const { data: peopleRows, error: peopleErr } = await db
     .from('people')
     .select('id, name, color')
     .eq('trip_id', session.tripId)
+
+  if (peopleErr) {
+    return new Response(
+      JSON.stringify({ error: 'Erro ao buscar participantes' }),
+      { status: 500, headers: HEADERS }
+    )
+  }
 
   const people: Person[] = (peopleRows ?? []).map(p => ({
     id: p.id,
